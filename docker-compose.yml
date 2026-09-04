@@ -1,0 +1,128 @@
+services:
+  # Monolith database
+  postgres-monolith:
+    image: postgres:15
+    container_name: learning-tracker-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: learning_tracker
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-monolith-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d learning_tracker']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Notification service database
+  postgres-notifications:
+    image: postgres:15
+    container_name: notification-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notifications
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres-notifications-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d notifications']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (shared by monolith and notification service)
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - app-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Monolith app
+  monolith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: learning-tracker-app
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres-monolith:5432/learning_tracker?schema=public
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_SECURE: ${SMTP_SECURE}
+    depends_on:
+      postgres-monolith:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Notification service
+  notification-service:
+    build:
+      context: ./services/notificationService
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgresql://postgres:postgres@postgres-notifications:5432/notifications?schema=public
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_SECURE: ${SMTP_SECURE}
+    depends_on:
+      postgres-notifications:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    volumes:
+      - ./services/notificationService:/app
+      - /app/node_modules
+    command: npm run dev
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres-monolith-data:
+  postgres-notifications-data:
+  redis-data:

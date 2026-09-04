@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GoalStatus {
+  planned
+  in_progress
+  done
+}
+
+enum Role {
+  user
+  admin
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  role         Role         @default(user)  
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  goals        LearningGoal[]
+}
+
+model LearningGoal {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  status      GoalStatus  @default(in_progress)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  sessions    Session[]
+
+  @@index([userId])
+}
+
+model Session {
+  id              String       @id @default(uuid())
+  goalId          String
+  goal            LearningGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  durationMinutes Int
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([goalId])
+}

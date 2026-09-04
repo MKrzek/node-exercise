@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "outDir": "dist",
+    "declaration": false
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "eslint.config.mjs",
+    "jest.config.cjs",
+    "playground",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
+}
