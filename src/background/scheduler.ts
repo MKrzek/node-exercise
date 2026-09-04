@@ -3,15 +3,6 @@ import { runEmailJob } from './jobs/emailJob.js'
 import { runCleanupJob } from './jobs/cleanupJob.js'
 import { logger } from '../lib/logger.js'
 
-// const log = (message: string) =>
-//   console.log(
-//     JSON.stringify({
-//       timestamp: new Date().toISOString(),
-//       level: 'INFO',
-//       message,
-//     }),
-//   )
-
 export function startScheduler(): void {
   logger.info('scheduler started')
 

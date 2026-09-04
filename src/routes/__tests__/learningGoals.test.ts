@@ -91,7 +91,6 @@ describe('GET /goals', () => {
   it('filters goals by status', async () => {
     await createGoal({ title: 'Planned goal' })
     const created = await createGoal({ title: 'In progress goal' })
-    console.log('created goal', created.body.data)
     await request
       .patch(`/goals/${created.body.data.id}`)
       .set('Authorization', `Bearer ${token}`)

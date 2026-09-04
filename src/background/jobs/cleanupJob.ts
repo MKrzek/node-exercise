@@ -4,18 +4,6 @@ import { logger } from '../../lib/logger.js'
 
 const jobLogger = logger.child({ job: 'cleanup-job' })
 
-// const log = (level: 'INFO' | 'ERROR' | 'WARN', message: string, meta?: object) => {
-//   console.log(
-//     JSON.stringify({
-//       timestamp: new Date().toISOString(),
-//       level,
-//       job: 'cleanup-job',
-//       message,
-//       ...meta,
-//     }),
-//   )
-// }
-
 // lock flag — prevents concurrent runs
 let isRunning = false
 

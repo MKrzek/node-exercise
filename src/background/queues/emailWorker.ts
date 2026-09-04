@@ -15,19 +15,6 @@ const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
 const url = new URL(redisUrl)
 
 async function sendEmail(job: Job<EmailJobData>, signal?: AbortSignal): Promise<void> {
-  console.log(
-    JSON.stringify({
-      timestamp: new Date().toISOString(),
-      level: 'INFO',
-      queue: 'email',
-      jobId: job.id,
-      attempt: job.attemptsMade + 1,
-      message: 'processing email',
-      recipient: job.data.recipient,
-      correlationId: job.data.correlationId,
-    }),
-  )
-
   if (signal?.aborted) {
     throw new Error('Operation aborted')
   }
