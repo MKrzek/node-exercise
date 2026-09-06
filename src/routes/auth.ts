@@ -23,8 +23,38 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(1, 'Password is required'), // loose — just needs to exist
+  password: z.string().min(1, 'Password is required'),
 })
+
+const ACCESS_TOKEN_MAX_AGE_MS = 15 * 60 * 1000 // 15 minutes
+const REFRESH_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
+
+function setAuthCookies(
+  res: import('express').Response,
+  accessToken: string,
+  refreshToken: string,
+) {
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: ACCESS_TOKEN_MAX_AGE_MS,
+  })
+
+  // Refresh token is scoped to /auth so it's never sent on normal API requests
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/auth',
+    maxAge: REFRESH_TOKEN_MAX_AGE_MS,
+  })
+}
+
+function clearAuthCookies(res: import('express').Response) {
+  res.clearCookie('accessToken', { path: '/' })
+  res.clearCookie('refreshToken', { path: '/auth' })
+}
 
 router.post(
   '/register',
@@ -34,15 +64,13 @@ router.post(
     if (!parsed.success) {
       throw new AppError('Validation error', 422, 'VALIDATION_ERROR')
     }
-    const result = await authService.register(parsed.data.email, parsed.data.password)
 
-    // Set HttpOnly cookie
-    res.cookie('token', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    const result = await authService.register(parsed.data.email, parsed.data.password, {
+      userAgent: req.get('user-agent'),
+      ip: req.ip,
     })
+
+    setAuthCookies(res, result.accessToken, result.refreshToken)
 
     res.status(201).json({ data: { userId: result.userId, role: result.role } })
   }),
@@ -56,17 +84,47 @@ router.post(
     if (!parsed.success) {
       throw new AppError('Validation error', 422, 'VALIDATION_ERROR')
     }
-    const result = await authService.login(parsed.data.email, parsed.data.password)
 
-    // Set HttpOnly cookie
-    res.cookie('token', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    const result = await authService.login(parsed.data.email, parsed.data.password, {
+      userAgent: req.get('user-agent'),
+      ip: req.ip,
     })
 
+    setAuthCookies(res, result.accessToken, result.refreshToken)
+
     res.json({ data: { userId: result.userId, role: result.role } })
+  }),
+)
+
+router.post(
+  '/refresh',
+  asyncHandler(async (req, res) => {
+    const refreshToken = req.cookies?.refreshToken
+    if (!refreshToken) {
+      throw new AppError('No refresh token provided', 401, 'NO_REFRESH_TOKEN')
+    }
+
+    try {
+      const result = await authService.refresh(refreshToken)
+      setAuthCookies(res, result.accessToken, result.refreshToken)
+      res.json({ data: { userId: result.userId, role: result.role } })
+    } catch (err) {
+      // If rotation fails (reuse/expired), force the client to re-authenticate
+      clearAuthCookies(res)
+      throw err
+    }
+  }),
+)
+
+router.post(
+  '/logout',
+  asyncHandler(async (req, res) => {
+    const refreshToken = req.cookies?.refreshToken
+    if (refreshToken) {
+      await authService.logout(refreshToken)
+    }
+    clearAuthCookies(res)
+    res.status(204).send()
   }),
 )
 

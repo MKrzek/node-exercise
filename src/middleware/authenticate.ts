@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express'
-import * as jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET
 if (!JWT_SECRET_RAW) {
@@ -21,11 +21,11 @@ export function authenticate(
 
   // If not in header, try cookie
   if (!token && req.cookies) {
-    token = req.cookies.token
+    token = req.cookies.accessToken
   }
 
   if (!token) {
-    return res.status(401).json({ error: 'No token provided' })
+    return res.status(401).json({ code: 'NO_TOKEN', error: 'No token provided' })
   }
 
   try {
@@ -45,6 +45,9 @@ export function authenticate(
 
     next()
   } catch (err) {
-    return res.status(401).json({ error: 'Invalid token' })
+    if (err instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ code: 'ACCESS_TOKEN_EXPIRED', error: 'Access token expired' })
+    }
+    return res.status(401).json({ code: 'INVALID_TOKEN', error: 'Invalid token' })
   }
 }

@@ -2,9 +2,9 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Install dependencies
+# Install ALL dependencies (including devDependencies for tsx)
 COPY package*.json ./
-RUN npm install
+RUN npm install --include=dev
 
 # Copy source code
 COPY . .

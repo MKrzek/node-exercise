@@ -1,12 +1,13 @@
 import { Router } from 'express'
-
 import { emailService } from '../services/emailService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
+import { authenticateMonolith } from '../middleware/authenticateMonolith.js'
 
 const router = Router()
 
 router.post(
   '/email',
+  authenticateMonolith,
   asyncHandler(async (req, res) => {
     const { to, subject, body } = req.body
 

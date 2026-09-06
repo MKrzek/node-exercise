@@ -11,7 +11,7 @@ import {
 import { validate } from '../middleware/validate.js'
 import { IdParamSchema, type IdParam } from '../validation/commonSchemas.js'
 import { authenticate, type AuthenticatedRequest } from '../middleware/authenticate.js'
-import { requireAuth, requireRole } from '../middleware/rbac.js'
+import { requireAuth } from '../middleware/rbac.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -36,7 +36,7 @@ router.get(
   validate(IdParamSchema, 'params'),
   asyncHandler(async (req: AuthenticatedRequest, res) => {
     const { id } = req.parsed?.params as IdParam
-    const goal = await learningGoalService.getById(id)
+    const goal = await learningGoalService.getById(id, req.userId!)
     res.json({ data: goal })
   }),
 )
@@ -62,7 +62,7 @@ router.patch(
   validate(IdParamSchema, 'params'),
   asyncHandler(async (req: AuthenticatedRequest, res) => {
     const { id } = req.parsed?.params as IdParam
-    const goal = await learningGoalService.update(id, req.body)
+    const goal = await learningGoalService.update(id, req.body, req.userId!)
     res.json({ data: goal })
   }),
 )

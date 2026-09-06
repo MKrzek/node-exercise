@@ -5,6 +5,10 @@ export const userRepository = {
     return prisma.user.findUnique({ where: { email } })
   },
 
+  async findById(id: string) {
+    return prisma.user.findUnique({ where: { id } })
+  },
+
   async create(email: string, passwordHash: string) {
     return prisma.user.create({
       data: { email, passwordHash },

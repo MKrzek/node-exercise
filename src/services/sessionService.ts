@@ -9,14 +9,15 @@ import { redis } from '../lib/redis.js'
 const GOALS_STATS_CACHE_KEY = 'stats:goals'
 
 export const sessionService = {
-  async create(goalId: string, input: CreateSessionInput) {
-    // ensure goal exists first
+  async create(goalId: string, input: CreateSessionInput, userId: string) {
     const goal = await learningGoalRepository.findById(goalId)
     if (!goal) throw new AppError(`Goal ${goalId} not found`, 404, 'NOT_FOUND')
+    if (goal.userId !== userId) {
+      throw new AppError('Goal not found', 404, 'NOT_FOUND')
+    }
 
     const nextStatus = goal.status === 'planned' ? 'in_progress' : goal.status
 
-    // transaction: create session + update goal status atomically
     const [session] = await prisma.$transaction([
       prisma.session.create({
         data: {
@@ -26,7 +27,6 @@ export const sessionService = {
           notes: input.notes,
         },
       }),
-      // auto-move goal to in_progress when first session is logged
       prisma.learningGoal.update({
         where: { id: goalId },
         data: {
@@ -40,9 +40,12 @@ export const sessionService = {
     return session
   },
 
-  async getByGoalId(goalId: string) {
+  async getByGoalId(goalId: string, userId: string) {
     const goal = await learningGoalRepository.findById(goalId)
     if (!goal) throw new AppError(`Goal ${goalId} not found`, 404, 'NOT_FOUND')
+    if (goal.userId !== userId) {
+      throw new AppError('Goal not found', 404, 'NOT_FOUND')
+    }
     return sessionRepository.findByGoalId(goalId)
   },
 }
