@@ -9,6 +9,7 @@ import { notFound } from './middleware/notFound.js'
 import { requestLogger } from './middleware/requestLogger.js'
 import { correlationIdMiddleware } from './middleware/correlationId.js'
 import sessionRoutes from './routes/sessions.js'
+import csvImportRoutes from './routes/csvImport.js'
 import statsRoutes from './routes/stats.js'
 import './types/express.d.js'
 
@@ -82,6 +83,7 @@ app.use((req, res, next) => {
 
 app.use('/queue', queueRoutes)
 app.use('/goals', learningGoalRoutes)
+app.use('/goals', csvImportRoutes)
 app.use('/goals/:id/sessions', sessionRoutes)
 app.use('/stats', statsRoutes)
 
