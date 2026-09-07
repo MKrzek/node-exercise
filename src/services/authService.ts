@@ -5,6 +5,7 @@ import { AppError } from '../errors/AppError.js'
 import { authSessionService, SessionReuseError } from './authSessionService.js'
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET
+const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '20d'
 if (!JWT_SECRET_RAW) {
   throw new Error('JWT_SECRET environment variable is required')
 }

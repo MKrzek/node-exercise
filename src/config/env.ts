@@ -5,6 +5,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   REDIS_URL: z.string().optional(),
+  ACCESS_TOKEN_EXPIRY: z.string().default('20d'),
 })
 
 const parsed = envSchema.safeParse(process.env)
@@ -19,4 +20,5 @@ export const env = {
   nodeEnv: parsed.data.NODE_ENV,
   databaseUrl: parsed.data.DATABASE_URL,
   redisUrl: parsed.data.REDIS_URL,
+  accessTokenExpiry: parsed.data.ACCESS_TOKEN_EXPIRY,
 }
